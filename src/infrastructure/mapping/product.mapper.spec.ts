@@ -7,7 +7,9 @@ import { productToDomain, productToOrm } from './product.mapper';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeOrmRow(overrides: Partial<ProductOrmEntity> = {}): ProductOrmEntity {
+function makeOrmRow(
+  overrides: Partial<ProductOrmEntity> = {},
+): ProductOrmEntity {
   const row = new ProductOrmEntity();
   row.id = 'bttf-1';
   row.name = 'Back to the Future 1';
@@ -21,7 +23,7 @@ function makeOrmRow(overrides: Partial<ProductOrmEntity> = {}): ProductOrmEntity
   return Object.assign(row, overrides);
 }
 
-function makeDomainProduct(overrides: Partial<ConstructorParameters<typeof Product>[number]> = {}): Product {
+function makeDomainProduct(): Product {
   return new Product(
     'bttf-1',
     'Back to the Future 1',
@@ -61,7 +63,7 @@ describe('productToDomain', () => {
   it('converts decimal string basePrice to a number', () => {
     const row = makeOrmRow();
     // TypeORM returns DECIMAL columns as strings from MySQL
-    (row as any).basePrice = '15.00';
+    (row as unknown as { basePrice: string }).basePrice = '15.00';
     const product = productToDomain(row);
 
     expect(product.basePrice.amount).toBe(15);
@@ -123,7 +125,15 @@ describe('productToOrm', () => {
   });
 
   it('maps a standalone product with null sagaId and volumeNumber', () => {
-    const product = new Product('chevre', 'La chèvre', Money.of(20), '', '', null, null);
+    const product = new Product(
+      'chevre',
+      'La chèvre',
+      Money.of(20),
+      '',
+      '',
+      null,
+      null,
+    );
     const row = productToOrm(product);
 
     expect(row.sagaId).toBeNull();

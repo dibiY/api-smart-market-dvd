@@ -9,7 +9,10 @@ import { promotionToDomain, promotionToOrm } from './promotion.mapper';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeRuleOrm(minQuantity: number, discountRate: number): PromotionRuleOrmEntity {
+function makeRuleOrm(
+  minQuantity: number,
+  discountRate: number,
+): PromotionRuleOrmEntity {
   const r = new PromotionRuleOrmEntity();
   r.id = minQuantity;
   r.minQuantity = minQuantity;
@@ -18,16 +21,14 @@ function makeRuleOrm(minQuantity: number, discountRate: number): PromotionRuleOr
   return r;
 }
 
-function makeOrmRow(overrides: Partial<PromotionOrmEntity> = {}): PromotionOrmEntity {
+function makeOrmRow(
+  overrides: Partial<PromotionOrmEntity> = {},
+): PromotionOrmEntity {
   const row = new PromotionOrmEntity();
   row.id = 'promo-bttf';
   row.name = 'Back to the Future Discount';
   row.sagaId = 'bttf';
-  row.rules = [
-    makeRuleOrm(1, 0),
-    makeRuleOrm(2, 10),
-    makeRuleOrm(3, 20),
-  ];
+  row.rules = [makeRuleOrm(1, 0), makeRuleOrm(2, 10), makeRuleOrm(3, 20)];
   return Object.assign(row, overrides);
 }
 
@@ -71,7 +72,8 @@ describe('promotionToDomain', () => {
       rules: [makeRuleOrm(2, 10)],
     });
     // TypeORM returns DECIMAL columns as strings from MySQL
-    (row.rules[0] as any).discountRate = '10.00';
+    (row.rules[0] as unknown as { discountRate: string }).discountRate =
+      '10.00';
     const promotion = promotionToDomain(row);
 
     expect(promotion.getRules()[0].discountRate.value).toBe(10);
@@ -79,7 +81,7 @@ describe('promotionToDomain', () => {
 
   it('produces an empty rules array when row.rules is undefined', () => {
     const row = makeOrmRow();
-    (row as any).rules = undefined;
+    (row as unknown as { rules: undefined }).rules = undefined;
     const promotion = promotionToDomain(row);
 
     expect(promotion.getRules()).toHaveLength(0);
@@ -112,7 +114,9 @@ describe('promotionToOrm', () => {
   });
 
   it('returns a PromotionOrmEntity instance', () => {
-    expect(promotionToOrm(makeDomainPromotion())).toBeInstanceOf(PromotionOrmEntity);
+    expect(promotionToOrm(makeDomainPromotion())).toBeInstanceOf(
+      PromotionOrmEntity,
+    );
   });
 
   it('rule rows are PromotionRuleOrmEntity instances', () => {
