@@ -41,7 +41,7 @@ export class TypeOrmPromotionRepository implements IPromotionRepository {
     const rules = (row.rules ?? []).map(
       (r) =>
         new PromotionRule(
-          r.minVolumes,
+          r.minQuantity,
           DiscountRate.of(Number(r.discountRate)),
         ),
     );
@@ -55,7 +55,7 @@ export class TypeOrmPromotionRepository implements IPromotionRepository {
     row.sagaId = promotion.sagaId;
     row.rules = promotion.getRules().map((rule) => {
       const ruleRow = new PromotionRuleOrmEntity();
-      ruleRow.minVolumes = rule.minVolumes;
+      ruleRow.minQuantity = rule.minQuantity;
       ruleRow.discountRate = rule.discountRate.value;
       ruleRow.promotionId = promotion.id;
       return ruleRow;

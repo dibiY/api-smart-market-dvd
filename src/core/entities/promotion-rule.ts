@@ -8,17 +8,17 @@ export class PromotionRule {
   public readonly discountRate: DiscountRate;
 
   constructor(
-    /** Minimum number of distinct volumes required to trigger this rule. */
-    public readonly minVolumes: number,
+    /** Minimum total quantity of saga items in the cart to trigger this rule. */
+    public readonly minQuantity: number,
     discountRate: DiscountRate,
   ) {
-    if (minVolumes < 1) {
-      throw new Error(`minVolumes must be at least 1, got ${minVolumes}`);
+    if (minQuantity < 1) {
+      throw new Error(`minQuantity must be at least 1, got ${minQuantity}`);
     }
     this.discountRate = discountRate;
   }
 
-  appliesTo(volumeCount: number): boolean {
-    return volumeCount >= this.minVolumes;
+  appliesTo(totalQuantity: number): boolean {
+    return totalQuantity >= this.minQuantity;
   }
 }

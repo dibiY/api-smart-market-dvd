@@ -91,9 +91,9 @@ export class DatabaseSeeder implements OnApplicationBootstrap {
     if (count > 0) return;
 
     const rules: Partial<PromotionRuleOrmEntity>[] = [
-      { minVolumes: 1, discountRate: 0, promotionId: 'promo-star-wars' },
-      { minVolumes: 2, discountRate: 10, promotionId: 'promo-star-wars' },
-      { minVolumes: 3, discountRate: 20, promotionId: 'promo-star-wars' },
+      { minQuantity: 1, discountRate: 0, promotionId: 'promo-star-wars' },
+      { minQuantity: 2, discountRate: 10, promotionId: 'promo-star-wars' },
+      { minQuantity: 3, discountRate: 20, promotionId: 'promo-star-wars' },
     ];
 
     await this.promotionRepo.save({

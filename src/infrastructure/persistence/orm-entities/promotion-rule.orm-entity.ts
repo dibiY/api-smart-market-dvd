@@ -13,7 +13,7 @@ export class PromotionRuleOrmEntity {
   id: number;
 
   @Column({ type: 'int' })
-  minVolumes: number;
+  minQuantity: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2 })
   discountRate: number;

@@ -10,9 +10,9 @@ export class InMemoryPromotionRepository implements IPromotionRepository {
    * Keyed by sagaId for O(1) lookup.
    *
    * Seeded with the Star Wars saga promotion rules:
-   *   - 1 volume  → 0 %
-   *   - 2 volumes → 10 %
-   *   - 3+ volumes → 20 %
+   *   - 1 item  in saga → 0 %
+   *   - 2 items in saga → 10 %
+   *   - 3+ items in saga → 20 %
    */
   private readonly store = new Map<string, Promotion>([
     [

@@ -47,9 +47,9 @@ export class PricingEngineService {
     // --- Saga items (promotion-eligible) ---
     for (const [sagaId, items] of sagaGroups.entries()) {
       const promotion = promotions.get(sagaId) ?? null;
-      const distinctVolumeCount = this.countDistinctVolumes(items);
+      const totalQuantity = this.countTotalQuantity(items);
       const discountRate = promotion
-        ? promotion.resolveDiscountRate(distinctVolumeCount)
+        ? promotion.resolveDiscountRate(totalQuantity)
         : null;
 
       for (const item of items) {
@@ -107,17 +107,15 @@ export class PricingEngineService {
   }
 
   /**
-   * Counts distinct volumes using volumeNumber when available,
-   * falling back to productId so a product is never counted twice.
+   * Sums the total quantity of all items in a saga group.
+   * This is the value compared against promotion rule minQuantity thresholds.
+   *
+   * Examples:
+   *   [vol1 x1, vol2 x1, vol3 x1]       -> 3  (20% discount)
+   *   [vol1 x1, vol3 x1]                -> 2  (10% discount)
+   *   [vol1 x1, vol2 x2, vol3 x1]       -> 4  (20% discount)
    */
-  private countDistinctVolumes(items: CartItem[]): number {
-    const keys = new Set(
-      items.map((i) =>
-        i.product.volumeNumber !== null
-          ? `vol:${i.product.volumeNumber}`
-          : `id:${i.product.id}`,
-      ),
-    );
-    return keys.size;
+  private countTotalQuantity(items: CartItem[]): number {
+    return items.reduce((sum, i) => sum + i.quantity, 0);
   }
 }
