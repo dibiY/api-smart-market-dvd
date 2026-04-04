@@ -4,7 +4,15 @@ import { Product } from './product';
 describe('Product', () => {
   describe('belongsToSaga()', () => {
     it('returns true when sagaId is set', () => {
-      const product = new Product('1', 'Vol 1', Money.of(15), '', '', 'bttf', 1);
+      const product = new Product(
+        '1',
+        'Vol 1',
+        Money.of(15),
+        '',
+        '',
+        'bttf',
+        1,
+      );
       expect(product.belongsToSaga()).toBe(true);
     });
 

@@ -17,9 +17,7 @@ export class Promotion {
     rules: PromotionRule[],
   ) {
     // Highest minQuantity first — first matching rule wins.
-    this.sortedRules = [...rules].sort(
-      (a, b) => b.minQuantity - a.minQuantity,
-    );
+    this.sortedRules = [...rules].sort((a, b) => b.minQuantity - a.minQuantity);
   }
 
   /**

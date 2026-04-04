@@ -3,10 +3,7 @@ import { Money } from '../value-objects/money.vo';
 import { Product } from '../entities/product';
 import { Promotion } from '../entities/promotion';
 import { PromotionRule } from '../entities/promotion-rule';
-import {
-  CartItem,
-  PricingEngineService,
-} from './pricing-engine.service';
+import { CartItem, PricingEngineService } from './pricing-engine.service';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -125,9 +122,7 @@ describe('PricingEngineService', () => {
 
       expect(result.total.amount).toBe(56);
 
-      const sagaLines = result.lines.filter((l) =>
-        l.product.belongsToSaga(),
-      );
+      const sagaLines = result.lines.filter((l) => l.product.belongsToSaga());
       const standaloneLines = result.lines.filter(
         (l) => !l.product.belongsToSaga(),
       );
