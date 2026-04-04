@@ -8,7 +8,7 @@ import { Promotion } from '../../core/entities/promotion';
 import { PromotionRule } from '../../core/entities/promotion-rule';
 import { Money } from '../../core/value-objects/money.vo';
 import { DiscountRate } from '../../core/value-objects/discount-rate.vo';
-import { CartRequestDto } from '../dtos/cart-request.dto';
+import { CartItemRequestDto, CartRequestDto } from '../dtos/cart-request.dto';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -20,7 +20,15 @@ function makeProduct(
   sagaId: string | null = null,
   volumeNumber: number | null = null,
 ): Product {
-  return new Product(id, `Product ${id}`, Money.of(price), '', '', sagaId, volumeNumber);
+  return new Product(
+    id,
+    `Product ${id}`,
+    Money.of(price),
+    '',
+    '',
+    sagaId,
+    volumeNumber,
+  );
 }
 
 function makeBttfPromotion(): Promotion {
@@ -36,9 +44,9 @@ function makeProductRepo(
 ): jest.Mocked<IProductRepository> {
   return {
     findAll: jest.fn(),
-    findById: jest.fn().mockImplementation((id: string) =>
-      Promise.resolve(map[id] ?? null),
-    ),
+    findById: jest
+      .fn()
+      .mockImplementation((id: string) => Promise.resolve(map[id] ?? null)),
     findBySagaId: jest.fn(),
     save: jest.fn(),
     delete: jest.fn(),
@@ -50,16 +58,20 @@ function makePromotionRepo(
 ): jest.Mocked<IPromotionRepository> {
   return {
     findAll: jest.fn(),
-    findBySagaId: jest.fn().mockImplementation((sagaId: string) =>
-      Promise.resolve(map[sagaId] ?? null),
-    ),
+    findBySagaId: jest
+      .fn()
+      .mockImplementation((sagaId: string) =>
+        Promise.resolve(map[sagaId] ?? null),
+      ),
     save: jest.fn(),
   };
 }
 
-function makeCartDto(...items: { productId: string; quantity: number }[]): CartRequestDto {
+function makeCartDto(
+  ...items: { productId: string; quantity: number }[]
+): CartRequestDto {
   const dto = new CartRequestDto();
-  (dto as any).items = items;
+  dto.items = items as CartItemRequestDto[];
   return dto;
 }
 
@@ -80,7 +92,11 @@ describe('CalculateCartPriceUseCase', () => {
       const productRepo = makeProductRepo({ 'bttf-1': null });
       const promotionRepo = makePromotionRepo();
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
+      );
 
       await expect(
         useCase.execute(makeCartDto({ productId: 'bttf-1', quantity: 1 })),
@@ -91,7 +107,11 @@ describe('CalculateCartPriceUseCase', () => {
       const productRepo = makeProductRepo({ unknown: null });
       const promotionRepo = makePromotionRepo();
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
+      );
 
       await expect(
         useCase.execute(makeCartDto({ productId: 'unknown', quantity: 1 })),
@@ -106,7 +126,11 @@ describe('CalculateCartPriceUseCase', () => {
       const productRepo = makeProductRepo({ chevre });
       const promotionRepo = makePromotionRepo();
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
+      );
 
       const result = await useCase.execute(
         makeCartDto({ productId: 'chevre', quantity: 1 }),
@@ -129,7 +153,11 @@ describe('CalculateCartPriceUseCase', () => {
       const productRepo = makeProductRepo({ chevre });
       const promotionRepo = makePromotionRepo();
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
+      );
 
       const result = await useCase.execute(
         makeCartDto({ productId: 'chevre', quantity: 1 }),
@@ -146,25 +174,40 @@ describe('CalculateCartPriceUseCase', () => {
       const productRepo = makeProductRepo({ chevre });
       const promotionRepo = makePromotionRepo();
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
+      );
 
       await useCase.execute(makeCartDto({ productId: 'chevre', quantity: 1 }));
 
-      expect(promotionRepo.findBySagaId).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const { findBySagaId } = promotionRepo;
+      expect(findBySagaId).not.toHaveBeenCalled();
     });
 
     it('calls promotionRepo once per unique sagaId', async () => {
       const productRepo = makeProductRepo({ 'bttf-1': vol1, 'bttf-2': vol2 });
       const promotionRepo = makePromotionRepo({ bttf: makeBttfPromotion() });
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
-
-      await useCase.execute(
-        makeCartDto({ productId: 'bttf-1', quantity: 1 }, { productId: 'bttf-2', quantity: 1 }),
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
       );
 
-      expect(promotionRepo.findBySagaId).toHaveBeenCalledTimes(1);
-      expect(promotionRepo.findBySagaId).toHaveBeenCalledWith('bttf');
+      await useCase.execute(
+        makeCartDto(
+          { productId: 'bttf-1', quantity: 1 },
+          { productId: 'bttf-2', quantity: 1 },
+        ),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const { findBySagaId } = promotionRepo;
+      expect(findBySagaId).toHaveBeenCalledTimes(1);
+      expect(findBySagaId).toHaveBeenCalledWith('bttf');
     });
   });
 
@@ -175,10 +218,18 @@ describe('CalculateCartPriceUseCase', () => {
      * Example 1: 3 saga volumes -> 20% discount -> total 36 EUR
      */
     it('example 1 — 3 saga items -> 20% -> 36 EUR', async () => {
-      const productRepo = makeProductRepo({ 'bttf-1': vol1, 'bttf-2': vol2, 'bttf-3': vol3 });
+      const productRepo = makeProductRepo({
+        'bttf-1': vol1,
+        'bttf-2': vol2,
+        'bttf-3': vol3,
+      });
       const promotionRepo = makePromotionRepo({ bttf: makeBttfPromotion() });
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
+      );
 
       const result = await useCase.execute(
         makeCartDto(
@@ -199,7 +250,11 @@ describe('CalculateCartPriceUseCase', () => {
       const productRepo = makeProductRepo({ 'bttf-1': vol1, 'bttf-3': vol3 });
       const promotionRepo = makePromotionRepo({ bttf: makeBttfPromotion() });
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
+      );
 
       const result = await useCase.execute(
         makeCartDto(
@@ -223,7 +278,11 @@ describe('CalculateCartPriceUseCase', () => {
       });
       const promotionRepo = makePromotionRepo({ bttf: makeBttfPromotion() });
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
+      );
 
       const result = await useCase.execute(
         makeCartDto(
@@ -241,10 +300,17 @@ describe('CalculateCartPriceUseCase', () => {
       const productRepo = makeProductRepo({ 'bttf-1': vol1, 'bttf-2': vol2 });
       const promotionRepo = makePromotionRepo({ bttf: null });
       const engine = new PricingEngineService();
-      const useCase = new CalculateCartPriceUseCase(productRepo, promotionRepo, engine);
+      const useCase = new CalculateCartPriceUseCase(
+        productRepo,
+        promotionRepo,
+        engine,
+      );
 
       const result = await useCase.execute(
-        makeCartDto({ productId: 'bttf-1', quantity: 1 }, { productId: 'bttf-2', quantity: 1 }),
+        makeCartDto(
+          { productId: 'bttf-1', quantity: 1 },
+          { productId: 'bttf-2', quantity: 1 },
+        ),
       );
 
       expect(result.total).toBe(30);

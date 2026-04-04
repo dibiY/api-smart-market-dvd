@@ -14,7 +14,15 @@ function makeProduct(
   sagaId: string | null = null,
   volumeNumber: number | null = null,
 ): Product {
-  return new Product(id, name, Money.of(price), 'Some description', 'http://img.test/' + id, sagaId, volumeNumber);
+  return new Product(
+    id,
+    name,
+    Money.of(price),
+    'Some description',
+    'http://img.test/' + id,
+    sagaId,
+    volumeNumber,
+  );
 }
 
 function makeRepo(products: Product[]): jest.Mocked<IProductRepository> {
@@ -39,12 +47,20 @@ describe('GetProductsUseCase', () => {
     const result = await useCase.execute();
 
     expect(result).toEqual([]);
-    expect(repo.findAll).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const { findAll } = repo;
+    expect(findAll).toHaveBeenCalledTimes(1);
   });
 
   describe('DTO mapping', () => {
     it('maps a saga product to ProductResponseDto correctly', async () => {
-      const product = makeProduct('bttf-1', 'Back to the Future 1', 15, 'bttf', 1);
+      const product = makeProduct(
+        'bttf-1',
+        'Back to the Future 1',
+        15,
+        'bttf',
+        1,
+      );
       const repo = makeRepo([product]);
       const useCase = new GetProductsUseCase(repo);
 
