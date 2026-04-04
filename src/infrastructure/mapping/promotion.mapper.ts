@@ -6,7 +6,8 @@ import { PromotionRuleOrmEntity } from '../persistence/orm-entities/promotion-ru
 
 export function promotionToDomain(row: PromotionOrmEntity): Promotion {
   const rules = (row.rules ?? []).map(
-    (r) => new PromotionRule(r.minQuantity, DiscountRate.of(Number(r.discountRate))),
+    (r) =>
+      new PromotionRule(r.minQuantity, DiscountRate.of(Number(r.discountRate))),
   );
   return new Promotion(row.id, row.name, row.sagaId, rules);
 }
