@@ -1,25 +1,33 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { Server } from 'http';
 import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { createTestApp } from './helpers/create-test-app';
 
-describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+/**
+ * Smoke test — verifies the NestJS application bootstraps correctly
+ * and the main routes are reachable without a real database.
+ */
+describe('Application bootstrap (e2e)', () => {
+  let app: INestApplication;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+  beforeAll(async () => {
+    app = await createTestApp();
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('GET /products is reachable (HTTP 200)', () => {
+    return request(app.getHttpServer() as Server)
+      .get('/products')
+      .expect(200);
+  });
+
+  it('POST /cart/price is reachable (HTTP 200)', () => {
+    return request(app.getHttpServer() as Server)
+      .post('/cart/price')
+      .send({ items: [{ productId: 'bttf-1', quantity: 1 }] })
+      .expect(200);
   });
 });
