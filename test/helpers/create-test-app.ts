@@ -1,111 +1,125 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { CalculateCartPriceUseCase } from '../../src/application/use-cases/calculate-cart-price.use-case';
-import { GetProductsUseCase } from '../../src/application/use-cases/get-products.use-case';
-import { Product } from '../../src/core/entities/product';
-import { Promotion } from '../../src/core/entities/promotion';
-import { PromotionRule } from '../../src/core/entities/promotion-rule';
-import { PRODUCT_REPOSITORY } from '../../src/core/repositories/product.repository.interface';
-import { PROMOTION_REPOSITORY } from '../../src/core/repositories/promotion.repository.interface';
-import { SAGA_REPOSITORY } from '../../src/core/repositories/saga.repository.interface';
-import { PricingEngineService } from '../../src/core/services/pricing-engine.service';
-import { DiscountRate } from '../../src/core/value-objects/discount-rate.vo';
-import { Money } from '../../src/core/value-objects/money.vo';
-import { CartController } from '../../src/web-api/controllers/cart.controller';
-import { ProductController } from '../../src/web-api/controllers/product.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { ProductOrmEntity } from '../../src/infrastructure/persistence/orm-entities/product.orm-entity';
+import { PromotionOrmEntity } from '../../src/infrastructure/persistence/orm-entities/promotion.orm-entity';
+import { PromotionRuleOrmEntity } from '../../src/infrastructure/persistence/orm-entities/promotion-rule.orm-entity';
+import { SagaOrmEntity } from '../../src/infrastructure/persistence/orm-entities/saga.orm-entity';
+import { DatabaseSeeder } from '../../src/infrastructure/seeder/database.seeder';
+import { MarketModule } from '../../src/web-api/modules/market.module';
 
 // ---------------------------------------------------------------------------
-// Seed data
+// Seed data (plain DB rows — matches test expectations)
 // ---------------------------------------------------------------------------
 
-export const SEED_PRODUCTS: Product[] = [
-  new Product(
-    'bttf-1',
-    'Back to the Future 1',
-    Money.of(15),
-    'Vol. 1',
-    '',
-    'bttf',
-    1,
-  ),
-  new Product(
-    'bttf-2',
-    'Back to the Future 2',
-    Money.of(15),
-    'Vol. 2',
-    '',
-    'bttf',
-    2,
-  ),
-  new Product(
-    'bttf-3',
-    'Back to the Future 3',
-    Money.of(15),
-    'Vol. 3',
-    '',
-    'bttf',
-    3,
-  ),
-  new Product(
-    'chevre',
-    'La chèvre',
-    Money.of(20),
-    'Comédie française',
-    '',
-    null,
-    null,
-  ),
+export const E2E_SAGA = { id: 'bttf', name: 'Back to the Future' };
+
+export const E2E_PRODUCTS = [
+  {
+    id: 'bttf-1',
+    name: 'Back to the Future 1',
+    basePrice: 15,
+    currency: 'EUR',
+    description: 'Vol. 1',
+    imageUrl: '',
+    sagaId: 'bttf',
+    volumeNumber: 1,
+  },
+  {
+    id: 'bttf-2',
+    name: 'Back to the Future 2',
+    basePrice: 15,
+    currency: 'EUR',
+    description: 'Vol. 2',
+    imageUrl: '',
+    sagaId: 'bttf',
+    volumeNumber: 2,
+  },
+  {
+    id: 'bttf-3',
+    name: 'Back to the Future 3',
+    basePrice: 15,
+    currency: 'EUR',
+    description: 'Vol. 3',
+    imageUrl: '',
+    sagaId: 'bttf',
+    volumeNumber: 3,
+  },
+  {
+    id: 'chevre',
+    name: 'La chèvre',
+    basePrice: 20,
+    currency: 'EUR',
+    description: 'Comédie française',
+    imageUrl: '',
+    sagaId: null,
+    volumeNumber: null,
+  },
 ];
 
-export const SEED_PROMOTIONS: Promotion[] = [
-  new Promotion('promo-bttf', 'Back to the Future Discount', 'bttf', [
-    new PromotionRule(1, DiscountRate.of(0)),
-    new PromotionRule(2, DiscountRate.of(10)),
-    new PromotionRule(3, DiscountRate.of(20)),
-  ]),
-];
+export const E2E_PROMOTION = {
+  id: 'promo-bttf',
+  name: 'Back to the Future Discount',
+  sagaId: 'bttf',
+  rules: [
+    { minQuantity: 1, discountRate: 0, promotionId: 'promo-bttf' },
+    { minQuantity: 2, discountRate: 10, promotionId: 'promo-bttf' },
+    { minQuantity: 3, discountRate: 20, promotionId: 'promo-bttf' },
+  ],
+};
+
+/** Number of products in the test dataset (used for array-length assertions). */
+export const E2E_PRODUCT_COUNT = E2E_PRODUCTS.length;
+
+/**
+ * Seeds the in-memory SQLite database with E2E test data.
+ * Call this in `beforeAll` after `createTestApp`.
+ */
+export async function seedDatabase(dataSource: DataSource): Promise<void> {
+  await dataSource.getRepository(SagaOrmEntity).save(E2E_SAGA);
+  await dataSource.getRepository(ProductOrmEntity).save(E2E_PRODUCTS);
+  await dataSource.getRepository(PromotionOrmEntity).save(E2E_PROMOTION);
+}
 
 // ---------------------------------------------------------------------------
-// Build test application (no TypeORM, no DB)
+// Build test application (real TypeORM, SQLite in-memory)
 // ---------------------------------------------------------------------------
 
-export async function createTestApp(): Promise<INestApplication> {
-  const productMap = new Map(SEED_PRODUCTS.map((p) => [p.id, p]));
-  const promotionMap = new Map(SEED_PROMOTIONS.map((p) => [p.sagaId, p]));
+export interface TestApp {
+  app: INestApplication;
+  dataSource: DataSource;
+}
 
-  const mockProductRepo = {
-    findAll: () => Promise.resolve(SEED_PRODUCTS),
-    findById: (id: string) => Promise.resolve(productMap.get(id) ?? null),
-    findBySagaId: (sagaId: string) =>
-      Promise.resolve(SEED_PRODUCTS.filter((p) => p.sagaId === sagaId)),
-    save: () => Promise.resolve(),
-    delete: () => Promise.resolve(),
-  };
-
-  const mockPromotionRepo = {
-    findAll: () => Promise.resolve(SEED_PROMOTIONS),
-    findBySagaId: (sagaId: string) =>
-      Promise.resolve(promotionMap.get(sagaId) ?? null),
-    save: () => Promise.resolve(),
-  };
-
-  const mockSagaRepo = {
-    findAll: () => Promise.resolve([]),
-    findById: () => Promise.resolve(null),
-    save: () => Promise.resolve(),
-  };
-
+/**
+ * Creates a NestJS test application backed by a fresh SQLite in-memory
+ * database. Uses the real `MarketModule` (TypeORM repositories, pricing
+ * engine, controllers) but bypasses the `DatabaseSeeder` so each test suite
+ * controls its own seed data via `seedDatabase()`.
+ */
+export async function createTestApp(): Promise<TestApp> {
   const moduleRef = await Test.createTestingModule({
-    controllers: [ProductController, CartController],
-    providers: [
-      { provide: PRODUCT_REPOSITORY, useValue: mockProductRepo },
-      { provide: PROMOTION_REPOSITORY, useValue: mockPromotionRepo },
-      { provide: SAGA_REPOSITORY, useValue: mockSagaRepo },
-      PricingEngineService,
-      GetProductsUseCase,
-      CalculateCartPriceUseCase,
+    imports: [
+      TypeOrmModule.forRoot({
+        type: 'better-sqlite3',
+        database: ':memory:',
+        synchronize: true,
+        dropSchema: true,
+        entities: [
+          SagaOrmEntity,
+          ProductOrmEntity,
+          PromotionOrmEntity,
+          PromotionRuleOrmEntity,
+        ],
+        logging: false,
+      }),
+      MarketModule,
     ],
-  }).compile();
+  })
+    // Prevent the production seeder from running during tests
+    .overrideProvider(DatabaseSeeder)
+    .useValue({ onApplicationBootstrap: async (): Promise<void> => {} })
+    .compile();
 
   const app = moduleRef.createNestApplication();
 
@@ -119,5 +133,7 @@ export async function createTestApp(): Promise<INestApplication> {
   );
 
   await app.init();
-  return app;
+
+  const dataSource = moduleRef.get(DataSource);
+  return { app, dataSource };
 }

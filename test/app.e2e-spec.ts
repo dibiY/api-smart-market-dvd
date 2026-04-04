@@ -1,17 +1,20 @@
 import { INestApplication } from '@nestjs/common';
 import { Server } from 'http';
+import { DataSource } from 'typeorm';
 import request from 'supertest';
-import { createTestApp } from './helpers/create-test-app';
+import { createTestApp, seedDatabase } from './helpers/create-test-app';
 
 /**
  * Smoke test — verifies the NestJS application bootstraps correctly
- * and the main routes are reachable without a real database.
+ * and the main routes are reachable against a real SQLite in-memory database.
  */
 describe('Application bootstrap (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    app = await createTestApp();
+    let dataSource: DataSource;
+    ({ app, dataSource } = await createTestApp());
+    await seedDatabase(dataSource);
   });
 
   afterAll(async () => {

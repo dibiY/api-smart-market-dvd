@@ -1,17 +1,20 @@
 import { INestApplication } from '@nestjs/common';
 import { Server } from 'http';
+import { DataSource } from 'typeorm';
 import request from 'supertest';
 import type {
   PricedCartResponseDto,
   PricedLineResponseDto,
 } from '../src/application/dtos/priced-cart-response.dto';
-import { createTestApp } from './helpers/create-test-app';
+import { createTestApp, seedDatabase } from './helpers/create-test-app';
 
 describe('POST /cart/price (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    app = await createTestApp();
+    let dataSource: DataSource;
+    ({ app, dataSource } = await createTestApp());
+    await seedDatabase(dataSource);
   });
 
   afterAll(async () => {

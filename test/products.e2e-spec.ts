@@ -1,14 +1,21 @@
 import { INestApplication } from '@nestjs/common';
 import { Server } from 'http';
+import { DataSource } from 'typeorm';
 import request from 'supertest';
 import type { ProductResponseDto } from '../src/application/dtos/product-response.dto';
-import { createTestApp, SEED_PRODUCTS } from './helpers/create-test-app';
+import {
+  createTestApp,
+  E2E_PRODUCT_COUNT,
+  seedDatabase,
+} from './helpers/create-test-app';
 
 describe('GET /products (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    app = await createTestApp();
+    let dataSource: DataSource;
+    ({ app, dataSource } = await createTestApp());
+    await seedDatabase(dataSource);
   });
 
   afterAll(async () => {
@@ -28,7 +35,7 @@ describe('GET /products (e2e)', () => {
     const body = response.body as ProductResponseDto[];
 
     expect(Array.isArray(body)).toBe(true);
-    expect(body).toHaveLength(SEED_PRODUCTS.length);
+    expect(body).toHaveLength(E2E_PRODUCT_COUNT);
   });
 
   it('each product has the expected fields', async () => {
