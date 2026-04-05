@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.prod.yml — PRODUCTION overrides
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# - Always restart on failure
+# - DB never exposed externally
+# - DB_SYNCHRONIZE=false — schema changes must go through explicit migrations
+# - Use a pre-built image tag instead of building on the server
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  db:
+    restart: always
+
+  api:
+    # Pull a pre-built image from your registry instead of building on the server.
+    # Set IMAGE_TAG in your CI/CD pipeline (e.g. ghcr.io/org/api-smart-market-dvd:1.2.3).
+    # If IMAGE_TAG is not set, the image is built locally from the Dockerfile.
+    image: ${IMAGE_TAG:-}
+    build:
+      target: runner
+    restart: always
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      NODE_ENV:       production
+      DB_SYNCHRONIZE: "false"

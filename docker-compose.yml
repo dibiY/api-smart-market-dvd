@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.yml — BASE configuration
+#
+# Usage:
+#   Local / dev  : docker compose up                        (uses override.yml automatically)
+#   Recette      : docker compose -f docker-compose.yml -f docker-compose.recette.yml up -d
+#   Production   : docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# All secrets are provided through a .env file (see .env.example).
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── MySQL database ──────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE:      ${DB_NAME}
+      MYSQL_USER:          ${DB_USER}
+      MYSQL_PASSWORD:      ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── NestJS API ──────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV:       ${NODE_ENV:-production}
+      PORT:           ${PORT:-8000}
+      DB_HOST:        db
+      DB_PORT:        3306
+      DB_USER:        ${DB_USER}
+      DB_PASSWORD:    ${DB_PASSWORD}
+      DB_NAME:        ${DB_NAME}
+      DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-false}
+      CORS_ORIGIN:    ${CORS_ORIGIN:-*}
+
+volumes:
+  db_data:

@@ -36,8 +36,15 @@ lerna-debug.log*
 !.vscode/extensions.json
 
 # dotenv environment variable files
+# Only *.example files are committed — never real secrets
 .env
+.env.dev
+.env.recette
+.env.prod
 .env.development.local
+.env.test.local
+.env.production.local
+.env.local
 .env.test.local
 .env.production.local
 .env.local

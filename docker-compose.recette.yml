@@ -1,0 +1,19 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.recette.yml — STAGING / RECETTE overrides
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.recette.yml up -d
+#
+# - API port exposed on the host (reverse-proxy can reach it)
+# - DB NOT exposed externally
+# - DB_SYNCHRONIZE kept true so schema migrations apply automatically
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  api:
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      NODE_ENV:       staging
+      DB_SYNCHRONIZE: "true"

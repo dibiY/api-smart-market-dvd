@@ -1,0 +1,23 @@
+# Ignore compiled output, dependencies, etc.
+node_modules/
+dist/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Tests
+coverage/
+.nyc_output/
+
+# ── Docker ─────────────────────────────────────────────────────────────────
+# Never commit real .env files — they contain secrets.
+# Only *.example files are committed.
+.env
+.env.dev
+.env.recette
+.env.prod
+.env.local
+.env.*.local

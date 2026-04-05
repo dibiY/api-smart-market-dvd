@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.override.yml — LOCAL / DEV overrides
+#
+# Applied automatically when running: docker compose up
+# Builds from source with hot-reload, exposes DB port for local tools.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  db:
+    # Expose DB port locally so you can connect with a GUI tool (TablePlus, DBeaver…)
+    ports:
+      - "3306:3306"
+
+  api:
+    build:
+      target: builder          # Use the builder stage (has ts-node, devDeps)
+    command: npm run start:dev # Hot-reload via NestJS CLI watch
+    volumes:
+      - .:/app                 # Mount source so changes are reflected immediately
+      - /app/node_modules      # Keep container node_modules isolated
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      NODE_ENV:       development
+      DB_SYNCHRONIZE: "true"
