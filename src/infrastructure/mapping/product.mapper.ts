@@ -11,6 +11,7 @@ export function productToDomain(row: ProductOrmEntity): Product {
     row.imageUrl ?? '',
     row.sagaId,
     row.volumeNumber,
+    row.saga?.name ?? null,
   );
 }
 

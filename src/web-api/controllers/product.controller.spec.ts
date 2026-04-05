@@ -26,6 +26,7 @@ function makeProductDto(
     description: '',
     imageUrl: '',
     sagaId,
+    sagaName: sagaId ? `Saga of ${id}` : null,
     volumeNumber: sagaId ? 1 : null,
   };
 }

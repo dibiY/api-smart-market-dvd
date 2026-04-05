@@ -20,6 +20,7 @@ export class GetProductsUseCase {
       description: product.description,
       imageUrl: product.imageUrl,
       sagaId: product.sagaId,
+      sagaName: product.sagaName,
       volumeNumber: product.volumeNumber,
     }));
   }

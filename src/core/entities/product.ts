@@ -11,6 +11,8 @@ export class Product {
     public readonly sagaId: string | null = null,
     /** Position of this product within its saga (1-based). */
     public readonly volumeNumber: number | null = null,
+    /** Human-readable saga name (null for standalone products). */
+    public readonly sagaName: string | null = null,
   ) {}
 
   belongsToSaga(): boolean {

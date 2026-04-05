@@ -14,17 +14,23 @@ export class TypeOrmProductRepository implements IProductRepository {
   ) {}
 
   async findAll(): Promise<Product[]> {
-    const rows = await this.repo.find();
+    const rows = await this.repo.find({ relations: { saga: true } });
     return rows.map((row) => productToDomain(row));
   }
 
   async findById(id: string): Promise<Product | null> {
-    const row = await this.repo.findOneBy({ id });
+    const row = await this.repo.findOne({
+      where: { id },
+      relations: { saga: true },
+    });
     return row ? productToDomain(row) : null;
   }
 
   async findBySagaId(sagaId: string): Promise<Product[]> {
-    const rows = await this.repo.findBy({ sagaId });
+    const rows = await this.repo.find({
+      where: { sagaId },
+      relations: { saga: true },
+    });
     return rows.map((row) => productToDomain(row));
   }
 

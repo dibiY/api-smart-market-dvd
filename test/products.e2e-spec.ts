@@ -52,6 +52,7 @@ describe('GET /products (e2e)', () => {
       expect(product).toHaveProperty('description');
       expect(product).toHaveProperty('imageUrl');
       expect(product).toHaveProperty('sagaId');
+      expect(product).toHaveProperty('sagaName');
       expect(product).toHaveProperty('volumeNumber');
     }
   });
@@ -68,6 +69,7 @@ describe('GET /products (e2e)', () => {
     expect(sagaProducts.length).toBeGreaterThan(0);
     sagaProducts.forEach((p: ProductResponseDto) => {
       expect(typeof p.sagaId).toBe('string');
+      expect(typeof p.sagaName).toBe('string');
       expect(typeof p.volumeNumber).toBe('number');
     });
   });
@@ -84,6 +86,7 @@ describe('GET /products (e2e)', () => {
     expect(standalone.length).toBeGreaterThan(0);
     standalone.forEach((p: ProductResponseDto) => {
       expect(p.sagaId).toBeNull();
+      expect(p.sagaName).toBeNull();
       expect(p.volumeNumber).toBeNull();
     });
   });
@@ -98,5 +101,6 @@ describe('GET /products (e2e)', () => {
     expect(bttf1).toBeDefined();
     expect(bttf1!.price).toBe(15);
     expect(bttf1!.sagaId).toBe('bttf');
+    expect(bttf1!.sagaName).toBe('Back to the Future');
   });
 });

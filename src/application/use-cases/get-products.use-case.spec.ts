@@ -13,6 +13,7 @@ function makeProduct(
   price: number,
   sagaId: string | null = null,
   volumeNumber: number | null = null,
+  sagaName: string | null = null,
 ): Product {
   return new Product(
     id,
@@ -22,6 +23,7 @@ function makeProduct(
     'http://img.test/' + id,
     sagaId,
     volumeNumber,
+    sagaName,
   );
 }
 
@@ -60,6 +62,7 @@ describe('GetProductsUseCase', () => {
         15,
         'bttf',
         1,
+        'Back to the Future',
       );
       const repo = makeRepo([product]);
       const useCase = new GetProductsUseCase(repo);
@@ -74,6 +77,7 @@ describe('GetProductsUseCase', () => {
         description: 'Some description',
         imageUrl: 'http://img.test/bttf-1',
         sagaId: 'bttf',
+        sagaName: 'Back to the Future',
         volumeNumber: 1,
       });
     });
@@ -86,6 +90,7 @@ describe('GetProductsUseCase', () => {
       const [dto] = await useCase.execute();
 
       expect(dto.sagaId).toBeNull();
+      expect(dto.sagaName).toBeNull();
       expect(dto.volumeNumber).toBeNull();
     });
 

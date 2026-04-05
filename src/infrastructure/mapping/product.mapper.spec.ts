@@ -19,7 +19,12 @@ function makeOrmRow(
   row.imageUrl = 'http://img.test/bttf-1.jpg';
   row.sagaId = 'bttf';
   row.volumeNumber = 1;
-  row.saga = null;
+  row.saga = {
+    id: 'bttf',
+    name: 'Back to the Future',
+    products: [],
+    promotions: [],
+  };
   return Object.assign(row, overrides);
 }
 
@@ -50,6 +55,7 @@ describe('productToDomain', () => {
     expect(product.imageUrl).toBe('http://img.test/bttf-1.jpg');
     expect(product.sagaId).toBe('bttf');
     expect(product.volumeNumber).toBe(1);
+    expect(product.sagaName).toBe('Back to the Future');
   });
 
   it('maps basePrice as a Money value object with correct amount and currency', () => {
@@ -84,12 +90,27 @@ describe('productToDomain', () => {
   });
 
   it('maps standalone product with null sagaId and volumeNumber', () => {
-    const row = makeOrmRow({ sagaId: null, volumeNumber: null });
+    const row = makeOrmRow({ sagaId: null, volumeNumber: null, saga: null });
     const product = productToDomain(row);
 
     expect(product.sagaId).toBeNull();
     expect(product.volumeNumber).toBeNull();
+    expect(product.sagaName).toBeNull();
     expect(product.belongsToSaga()).toBe(false);
+  });
+
+  it('maps sagaName from the related saga entity', () => {
+    const row = makeOrmRow();
+    const product = productToDomain(row);
+
+    expect(product.sagaName).toBe('Back to the Future');
+  });
+
+  it('sets sagaName to null when saga relation is not loaded', () => {
+    const row = makeOrmRow({ saga: null });
+    const product = productToDomain(row);
+
+    expect(product.sagaName).toBeNull();
   });
 
   it('returns a Product instance', () => {

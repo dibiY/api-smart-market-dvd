@@ -22,6 +22,9 @@ export class ProductResponseDto {
   @ApiPropertyOptional({ example: 'star-wars', nullable: true })
   sagaId: string | null;
 
+  @ApiPropertyOptional({ example: 'Star Wars', nullable: true })
+  sagaName: string | null;
+
   @ApiPropertyOptional({ example: 1, nullable: true })
   volumeNumber: number | null;
 }
