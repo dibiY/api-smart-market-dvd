@@ -1,98 +1,275 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+﻿# Smart Market DVD — API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend REST de la marketplace DVD **Smart Market**, construit avec **NestJS 11**, **TypeORM** et **MySQL 8**.  
+Il expose un catalogue de produits et un moteur de promotion qui calcule automatiquement le prix d'un panier en appliquant des remises par saga.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Sommaire
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+1. [Présentation](#présentation)
+2. [Architecture](#architecture)
+3. [Endpoints](#endpoints)
+4. [Règles de promotion](#règles-de-promotion)
+5. [Démarrage local (sans Docker)](#démarrage-local-sans-docker)
+6. [Démarrage avec Docker](#démarrage-avec-docker)
+   - [Dev](#env-dev--local)
+   - [Recette](#env-recette--staging)
+   - [Production](#env-production)
+7. [Tests](#tests)
+8. [Variables d'environnement](#variables-denvironnement)
 
-## Project setup
+---
 
-```bash
-$ npm install
+## Présentation
+
+| Technologie | Version |
+|---|---|
+| Node.js | 22 (LTS) |
+| NestJS | 11 |
+| TypeORM | 0.3 |
+| MySQL | 8.4 |
+| TypeScript | 5.7 |
+
+L'API suit une **architecture hexagonale** (Clean Architecture) :
+
+```
+src/
+├── core/               # Domaine métier pur (entités, value objects, interfaces de repo)
+├── application/        # Cas d'usage (DTOs, use cases)
+├── infrastructure/     # Adaptateurs TypeORM (repositories, mapping, seeder)
+└── web-api/            # Controllers NestJS, modules
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+## Endpoints
 
-# watch mode
-$ npm run start:dev
+### Catalogue
 
-# production mode
-$ npm run start:prod
+| Méthode | Route | Description |
+|---|---|---|
+| `GET` | `/products` | Retourne tous les produits du catalogue |
+
+### Panier
+
+| Méthode | Route | Description |
+|---|---|---|
+| `POST` | `/cart/price` | Calcule le prix d'un panier avec les promotions appliquées |
+
+**Documentation Swagger interactive** : `http://localhost:8000/api/docs`
+
+#### Exemple — `POST /cart/price`
+
+```json
+// Request
+{
+  "items": [
+    { "productId": "sw-vol-1", "quantity": 1 },
+    { "productId": "sw-vol-2", "quantity": 1 },
+    { "productId": "sw-vol-3", "quantity": 1 }
+  ]
+}
+
+// Response 200
+{
+  "lines": [
+    { "productId": "sw-vol-1", "productName": "Star Wars Vol. 1", "quantity": 1, "unitPrice": 15, "lineTotal": 12, "discountRate": 20, "currency": "EUR" },
+    { "productId": "sw-vol-2", "productName": "Star Wars Vol. 2", "quantity": 1, "unitPrice": 15, "lineTotal": 12, "discountRate": 20, "currency": "EUR" },
+    { "productId": "sw-vol-3", "productName": "Star Wars Vol. 3", "quantity": 1, "unitPrice": 15, "lineTotal": 12, "discountRate": 20, "currency": "EUR" }
+  ],
+  "total": 36,
+  "currency": "EUR"
+}
 ```
 
-## Run tests
+---
+
+## Règles de promotion
+
+Les remises s'appliquent **par saga**, sur la quantité totale de volumes de la saga dans le panier.
+
+| Volumes de la saga dans le panier | Remise |
+|---|---|
+| 1 | 0 % |
+| 2 | 10 % |
+| ≥ 3 | 20 % |
+
+Les produits **standalone** (sans saga) ne bénéficient d'aucune remise.
+
+---
+
+## Démarrage local (sans Docker)
+
+### Prérequis
+
+- Node.js ≥ 22
+- MySQL 8 accessible en local
+
+### Installation
 
 ```bash
-# unit tests
-$ npm run test
+# 1. Cloner le dépôt
+git clone <repo-url>
+cd api-smart-market-dvd
 
-# e2e tests
-$ npm run test:e2e
+# 2. Installer les dépendances
+npm install
 
-# test coverage
-$ npm run test:cov
+# 3. Configurer l'environnement
+cp .env.dev.example .env
+# Éditer .env avec vos identifiants MySQL
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Démarrage
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Mode watch (hot-reload)
+npm run start:dev
+
+# Mode normal
+npm run start
+
+# Mode production (build compilé)
+npm run build
+npm run start:prod
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+L'API est disponible sur `http://localhost:8000`.
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+## Démarrage avec Docker
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Prérequis
 
-## Support
+- [Docker](https://www.docker.com/) ≥ 24
+- [Docker Compose](https://docs.docker.com/compose/) v2
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Architecture de l'image (multi-stage)
 
-## Stay in touch
+```
+Dockerfile
+├── Stage deps     → npm ci --omit=dev   (dépendances prod uniquement)
+├── Stage builder  → npm ci + npm run build   (compile le TypeScript)
+└── Stage runner   → image finale : dist/ + node_modules prod (~80 MB)
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+L'image finale ne contient **ni le code source**, **ni les devDependencies**.  
+Elle s'exécute avec un **utilisateur non-root** (`appuser`) pour la sécurité.
 
-## License
+---
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Env DEV — local
+
+`docker-compose.override.yml` est appliqué **automatiquement** par Docker Compose.
+
+```bash
+# 1. Créer le fichier d'environnement
+cp .env.dev.example .env
+
+# 2. Démarrer (hot-reload activé, DB exposée sur localhost:3306)
+docker compose up
+```
+
+| Service | URL locale |
+|---|---|
+| API (hot-reload) | http://localhost:8000 |
+| Swagger | http://localhost:8000/api/docs |
+| MySQL | localhost:3306 |
+
+---
+
+### Env RECETTE — staging
+
+```bash
+# 1. Créer le fichier d'environnement sur le serveur
+cp .env.recette.example .env
+# Éditer .env avec les vraies valeurs recette
+
+# 2. Démarrer
+docker compose -f docker-compose.yml -f docker-compose.recette.yml up -d
+```
+
+- `NODE_ENV=staging`
+- `DB_SYNCHRONIZE=true` — schéma mis à jour automatiquement
+- Port DB **non exposé** à l'extérieur
+- Port API exposé sur `${PORT}` (défaut : 8000)
+
+---
+
+### Env PRODUCTION
+
+```bash
+# 1. Créer le fichier d'environnement sur le serveur
+cp .env.prod.example .env
+# Remplir DB_ROOT_PASSWORD, DB_PASSWORD, CORS_ORIGIN, IMAGE_TAG
+
+# 2. (Optionnel) Renseigner une image pré-buildée par le CI/CD
+# dans .env : IMAGE_TAG=ghcr.io/your-org/api-smart-market-dvd:1.2.3
+
+# 3. Démarrer
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+- `NODE_ENV=production`
+- `DB_SYNCHRONIZE=false` — les migrations doivent être exécutées explicitement
+- `restart: always` sur l'API et la base
+- Port DB **jamais exposé** à l'extérieur
+
+#### Builder et pousser l'image manuellement
+
+```bash
+# Build
+docker build -t ghcr.io/your-org/api-smart-market-dvd:1.0.0 .
+
+# Push vers un registry
+docker push ghcr.io/your-org/api-smart-market-dvd:1.0.0
+```
+
+---
+
+### Résumé des commandes Docker
+
+| Environnement | Commande |
+|---|---|
+| Dev (local) | `docker compose up` |
+| Recette | `docker compose -f docker-compose.yml -f docker-compose.recette.yml up -d` |
+| Production | `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` |
+| Arrêter | `docker compose down` |
+| Arrêter + supprimer volumes | `docker compose down -v` |
+
+---
+
+## Tests
+
+```bash
+# Tests unitaires (106 tests — core / application / infrastructure / web-api)
+npm test
+
+# Tests E2E (25 tests — SQLite in-memory, aucune DB externe requise)
+npm run test:e2e
+
+# Couverture
+npm run test:cov
+```
+
+---
+
+## Variables d'environnement
+
+| Variable | Description | Défaut |
+|---|---|---|
+| `PORT` | Port d'écoute de l'API | `8000` |
+| `DB_HOST` | Hôte MySQL (dans Docker : `db`) | `localhost` |
+| `DB_PORT` | Port MySQL | `3306` |
+| `DB_USER` | Utilisateur MySQL | — |
+| `DB_PASSWORD` | Mot de passe MySQL | — |
+| `DB_NAME` | Nom de la base de données | — |
+| `DB_ROOT_PASSWORD` | Mot de passe root MySQL (Docker uniquement) | — |
+| `DB_SYNCHRONIZE` | Sync automatique du schéma TypeORM | `false` |
+| `CORS_ORIGIN` | Origine autorisée pour le CORS | `*` |
+| `IMAGE_TAG` | Image Docker pré-buildée (prod CI/CD) | _(build local)_ |
+
+Voir les fichiers `.env.*.example` pour des exemples complets par environnement.
+
